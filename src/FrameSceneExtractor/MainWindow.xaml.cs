@@ -81,6 +81,7 @@ public partial class MainWindow : Window
         }
 
         _workCts?.Cancel();
+        _workCts?.Dispose();
         _workCts = new CancellationTokenSource();
         var token = _workCts.Token;
         var threshold = GetSelectedThreshold();
@@ -159,19 +160,19 @@ public partial class MainWindow : Window
             return;
         }
 
-        using var dialog = new System.Windows.Forms.FolderBrowserDialog
+        var dialog = new OpenFolderDialog
         {
-            Description = "Choose where the extracted scene folder should be created",
-            UseDescriptionForTitle = true,
-            ShowNewFolderButton = true
+            Title = "Choose where the extracted scene folder should be created",
+            Multiselect = false
         };
 
-        if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK || string.IsNullOrWhiteSpace(dialog.SelectedPath))
+        if (dialog.ShowDialog(this) != true || string.IsNullOrWhiteSpace(dialog.FolderName))
         {
             return;
         }
 
         _workCts?.Cancel();
+        _workCts?.Dispose();
         _workCts = new CancellationTokenSource();
         var token = _workCts.Token;
 
@@ -179,7 +180,7 @@ public partial class MainWindow : Window
         {
             SetBusy(true, indeterminate: true);
             var status = new Progress<string>(message => StatusText.Text = message);
-            await _exportService.ExportAsync(_selectedVideoPath, Scenes.ToList(), dialog.SelectedPath, token, status);
+            await _exportService.ExportAsync(_selectedVideoPath, Scenes.ToList(), dialog.FolderName, token, status);
             MessageBox.Show(this, "Frames and timestamp metadata were exported successfully.", "Export complete", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (OperationCanceledException)
@@ -289,7 +290,12 @@ public partial class MainWindow : Window
 
         try
         {
-            _workCts ??= new CancellationTokenSource();
+            if (_workCts is null || _workCts.IsCancellationRequested)
+            {
+                _workCts?.Dispose();
+                _workCts = new CancellationTokenSource();
+            }
+
             await RefreshThumbnailAsync(scene, _workCts.Token);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -377,11 +383,7 @@ public partial class MainWindow : Window
         }
 
         SceneCountText.Text = $"{Scenes.Count} scene{(Scenes.Count == 1 ? string.Empty : "s")}";
-        ExportButton.IsEnabled = Scenes.Count > 0 && _workCts?.IsCancellationRequested != false;
-        if (Scenes.Count > 0)
-        {
-            ExportButton.IsEnabled = true;
-        }
+        ExportButton.IsEnabled = Scenes.Count > 0 && !CancelButton.IsEnabled;
     }
 
     private void SetBusy(bool busy, bool indeterminate = false)
