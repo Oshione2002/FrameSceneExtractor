@@ -1,0 +1,18 @@
+# .NET
+bin/
+obj/
+artifacts/
+*.user
+*.suo
+*.cache
+
+# IDE
+.vs/
+.idea/
+
+# Local bundled binaries are injected by the build workflow
+src/FrameSceneExtractor/tools/
+
+# OS
+Thumbs.db
+Desktop.ini
