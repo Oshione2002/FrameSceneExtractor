@@ -1,0 +1,104 @@
+name: Build Windows Installer
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore FrameSceneExtractor.sln
+
+      - name: Publish self-contained Windows app
+        run: >-
+          dotnet publish src/FrameSceneExtractor/FrameSceneExtractor.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          --output artifacts/publish
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+
+      - name: Download bundled FFmpeg and FFprobe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $zip = Join-Path $env:RUNNER_TEMP 'ffmpeg.zip'
+          $extract = Join-Path $env:RUNNER_TEMP 'ffmpeg-extracted'
+          Invoke-WebRequest 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip' -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath $extract -Force
+
+          $ffmpeg = Get-ChildItem $extract -Filter 'ffmpeg.exe' -Recurse | Select-Object -First 1
+          $ffprobe = Get-ChildItem $extract -Filter 'ffprobe.exe' -Recurse | Select-Object -First 1
+          if (-not $ffmpeg -or -not $ffprobe) {
+            throw 'FFmpeg archive did not contain ffmpeg.exe and ffprobe.exe.'
+          }
+
+          $tools = Join-Path $PWD 'artifacts/publish/tools'
+          New-Item -ItemType Directory -Path $tools -Force | Out-Null
+          Copy-Item $ffmpeg.FullName (Join-Path $tools 'ffmpeg.exe')
+          Copy-Item $ffprobe.FullName (Join-Path $tools 'ffprobe.exe')
+
+          $license = Get-ChildItem $extract -File -Recurse | Where-Object { $_.Name -match '^LICENSE(\.txt)?$' } | Select-Object -First 1
+          if ($license) {
+            Copy-Item $license.FullName (Join-Path $tools 'FFMPEG-LICENSE.txt')
+          }
+
+          Copy-Item 'THIRD_PARTY_NOTICES.md' (Join-Path $PWD 'artifacts/publish/THIRD_PARTY_NOTICES.md')
+
+          & (Join-Path $tools 'ffmpeg.exe') -version
+          & (Join-Path $tools 'ffprobe.exe') -version
+
+      - name: Verify publish payload
+        shell: pwsh
+        run: |
+          $required = @(
+            'artifacts/publish/FrameSceneExtractor.exe',
+            'artifacts/publish/tools/ffmpeg.exe',
+            'artifacts/publish/tools/ffprobe.exe'
+          )
+          foreach ($file in $required) {
+            if (-not (Test-Path $file)) { throw "Missing required build output: $file" }
+          }
+
+      - name: Ensure Inno Setup is available
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+
+      - name: Build Setup.exe
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc 'Installer\FrameSceneExtractor.iss'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path 'artifacts/installer/FrameSceneExtractor-Setup.exe')) {
+            throw 'Installer was not created.'
+          }
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: FrameSceneExtractor-Windows-Installer
+          path: artifacts/installer/FrameSceneExtractor-Setup.exe
+          if-no-files-found: error
+          retention-days: 30
