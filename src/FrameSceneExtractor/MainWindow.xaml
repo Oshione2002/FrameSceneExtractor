@@ -1,0 +1,159 @@
+<Window x:Class="FrameSceneExtractor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="FrameSceneExtractor"
+        Width="1280" Height="820" MinWidth="1000" MinHeight="650"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="20" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="16" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="FrameSceneExtractor" FontSize="28" FontWeight="SemiBold" />
+                <TextBlock Text="Major visual changes → still frames with exact scene ranges" Foreground="{StaticResource MutedTextBrush}" Margin="0,5,0,0" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="CancelButton" Content="Cancel" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0" Click="CancelButton_Click" IsEnabled="False" />
+                <Button x:Name="ExportButton" Content="Export all" Click="ExportButton_Click" IsEnabled="False" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="370" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="18"
+                            AllowDrop="True" DragOver="DropZone_DragOver" Drop="DropZone_Drop">
+                        <StackPanel>
+                            <TextBlock Text="1. Choose video" FontSize="17" FontWeight="SemiBold" />
+                            <Border Background="{StaticResource PanelAltBrush}" CornerRadius="10" Margin="0,14,0,12" Padding="18">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="Drop a video here" FontSize="15" HorizontalAlignment="Center" />
+                                    <TextBlock Text="or browse from your PC" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="0,5,0,12" HorizontalAlignment="Center" />
+                                    <Button Content="Select video" Click="SelectVideo_Click" />
+                                </StackPanel>
+                            </Border>
+                            <TextBlock x:Name="VideoPathText" Text="No video selected" Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="18" Margin="0,16,0,0">
+                        <StackPanel>
+                            <TextBlock Text="2. Detection" FontSize="17" FontWeight="SemiBold" />
+                            <TextBlock Text="Scene sensitivity" Margin="0,16,0,6" />
+                            <ComboBox x:Name="SensitivityCombo" SelectedIndex="2">
+                                <ComboBoxItem Content="Very strict — only major cuts" />
+                                <ComboBoxItem Content="Strict" />
+                                <ComboBoxItem Content="Balanced — recommended" />
+                                <ComboBoxItem Content="Sensitive" />
+                                <ComboBoxItem Content="Very sensitive" />
+                            </ComboBox>
+                            <TextBlock Text="Higher sensitivity creates more scene boundaries. Normal movement inside a shot is less likely to be treated as a new scene at Balanced or Strict." Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" FontSize="12" Margin="0,8,0,0" />
+
+                            <TextBlock Text="Minimum scene duration (seconds)" Margin="0,16,0,6" />
+                            <TextBox x:Name="MinDurationText" Text="0.50" />
+                            <TextBlock Text="Shorter fragments are merged away to suppress flashes and transitional frames." Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" FontSize="12" Margin="0,8,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="18" Margin="0,16,0,0">
+                        <StackPanel>
+                            <TextBlock Text="3. Analyse" FontSize="17" FontWeight="SemiBold" />
+                            <TextBlock Text="The scan runs locally. The video is never uploaded." Foreground="{StaticResource MutedTextBrush}" TextWrapping="Wrap" FontSize="12" Margin="0,8,0,14" />
+                            <Button x:Name="AnalyzeButton" Content="Analyse video" Click="AnalyzeButton_Click" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Grid.Column="2" Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="18">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Detected scenes" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock x:Name="SceneCountText" Text="No analysis yet" Foreground="{StaticResource MutedTextBrush}" Margin="0,4,0,0" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1" Text="Midpoint stills" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                    </Grid>
+
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Scenes}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{StaticResource PanelAltBrush}" CornerRadius="10" Margin="0,0,0,12" Padding="12">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="176" />
+                                                <ColumnDefinition Width="16" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <Border Width="176" Height="100" Background="#0B0D12" CornerRadius="7" ClipToBounds="True">
+                                                <Image Source="{Binding ThumbnailPath}" Stretch="UniformToFill" />
+                                            </Border>
+
+                                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Index, StringFormat=Scene {0:000}}" FontWeight="SemiBold" FontSize="15" />
+                                                <TextBlock Margin="0,7,0,0">
+                                                    <Run Text="{Binding StartTimecode}" />
+                                                    <Run Text="  →  " Foreground="{StaticResource MutedTextBrush}" />
+                                                    <Run Text="{Binding EndTimecode}" />
+                                                </TextBlock>
+                                                <TextBlock Text="{Binding DurationText, StringFormat=Duration: {0}}" Foreground="{StaticResource MutedTextBrush}" Margin="0,5,0,0" />
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Column="3" VerticalAlignment="Center">
+                                                <Button Content="Merge ↑" Style="{StaticResource SecondaryButton}" Tag="{Binding}" Click="MergePrevious_Click" Padding="10,6" Margin="0,0,0,6" />
+                                                <Button Content="Split ½" Style="{StaticResource SecondaryButton}" Tag="{Binding}" Click="Split_Click" Padding="10,6" Margin="0,0,0,6" />
+                                                <Button Content="Merge ↓" Style="{StaticResource SecondaryButton}" Tag="{Binding}" Click="MergeNext_Click" Padding="10,6" Margin="0,0,0,6" />
+                                                <Button Content="Remove" Style="{StaticResource SecondaryButton}" Tag="{Binding}" Click="RemoveScene_Click" Padding="10,6" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="260" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="StatusText" Text="Ready" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <ProgressBar x:Name="WorkProgress" Grid.Column="1" Height="5" Minimum="0" Maximum="100" Value="0" Visibility="Collapsed" />
+        </Grid>
+    </Grid>
+</Window>
