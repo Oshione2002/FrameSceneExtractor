@@ -1,6 +1,11 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FrameSceneExtractor.Services;
 
@@ -138,7 +143,6 @@ public sealed class FfmpegService
             }
         }
 
-        // A final tiny fragment is normally a transition or flash. Merge it into the previous scene.
         if (accepted.Count > 1 && durationSeconds - accepted[^1] < minimumSceneDuration)
         {
             accepted.RemoveAt(accepted.Count - 1);
